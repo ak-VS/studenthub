@@ -123,28 +123,23 @@
 <script>
     const chart = {{ chart|tojson }};
     const low = {{ low }};
+    applyChartTheme();
 
-    new Chart(document.getElementById("marksChart"), {
+    const barChart = (id, values, colors) => registerChart(new Chart(document.getElementById(id), {
         type: "bar",
         data: {
             labels: chart.labels,
-            datasets: [{ label: "Marks %", data: chart.marks, backgroundColor: "#2563eb" }]
+            datasets: [{ data: values, backgroundColor: colors, borderRadius: 8, maxBarThickness: 44 }]
         },
-        options: { scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
-    });
+        options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { min: 0, max: 100 }, x: { grid: { display: false } } }
+        }
+    }));
 
-    new Chart(document.getElementById("attChart"), {
-        type: "bar",
-        data: {
-            labels: chart.labels,
-            datasets: [{
-                label: "Attendance %",
-                data: chart.attendance,
-                backgroundColor: chart.attendance.map(v => v !== null && v < low ? "#dc2626" : "#16a34a")
-            }]
-        },
-        options: { scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
-    });
+    barChart("marksChart", chart.marks, "#6d4aff");
+    barChart("attChart", chart.attendance,
+        chart.attendance.map(v => v !== null && v < low ? "#f43f5e" : "#10b981"));
 </script>
 {% endif %}
 {% endblock %}

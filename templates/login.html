@@ -1,21 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Login | StudentHub{% endblock %}
+{% block title %}Sign in | StudentHub{% endblock %}
 {% block content %}
-<section class="students login-box">
-    <h2>Sign in</h2>
-    <form method="POST" class="stack">
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" required autofocus>
-        </div>
-        <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <button type="submit" class="view-btn">Sign in</button>
-    </form>
-    <p class="muted hint">
-        Students: your password is your date of birth as DDMMYYYY until you change it.
-    </p>
+<section class="auth">
+
+    <div class="auth-art">
+        <span class="brand-mark big">S</span>
+        <h1>Marks, attendance and leave in one place.</h1>
+        <ul class="role-list">
+            <li><strong>Students</strong> check results and apply for leave</li>
+            <li><strong>Teachers</strong> take attendance and enter marks</li>
+            <li><strong>Admins</strong> manage students, staff and subjects</li>
+        </ul>
+    </div>
+
+    <div class="auth-form">
+        <h2>Sign in</h2>
+        <p class="muted">Use the email your admin registered for you.</p>
+
+        <form method="POST" class="stack">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" autocomplete="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="view-btn wide">Sign in</button>
+        </form>
+
+        <p class="muted hint">
+            New student? Your first password is your date of birth as DDMMYYYY.
+            You'll be asked to change it right after signing in.
+        </p>
+    </div>
+
 </section>
 {% endblock %}

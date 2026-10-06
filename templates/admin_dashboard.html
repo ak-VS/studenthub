@@ -4,7 +4,7 @@
 
 <section class="hero">
     <div>
-        <p class="tag">ADMIN</p>
+        <p class="tag">Admin</p>
         <h1>Welcome back, {{ session.name }}.</h1>
         <p>Manage students, teachers and subjects from one place.</p>
     </div>
@@ -40,7 +40,7 @@
                 <td>{{ student.status }}</td>
                 <td>
                     <a href="{{ url_for('student_detail', student_id=student.id) }}" class="view-btn">View</a>
-                    <a href="{{ url_for('edit_student', student_id=student.id) }}" class="view-btn">Edit</a>
+                    <a href="{{ url_for('edit_student', student_id=student.id) }}" class="view-btn muted-btn">Edit</a>
                 </td>
             </tr>
             {% else %}

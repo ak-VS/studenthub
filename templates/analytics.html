@@ -13,11 +13,15 @@
     </div>
     <div class="students">
         <h2>Average marks by subject (%)</h2>
-        <canvas id="marksChart"></canvas>
+        <div class="chart-box" style="height: {{ [200, data.marks.labels|length * 46 + 70]|max }}px">
+            <canvas id="marksChart"></canvas>
+        </div>
     </div>
     <div class="students">
         <h2>Attendance by subject (%)</h2>
-        <canvas id="attChart"></canvas>
+        <div class="chart-box" style="height: {{ [200, data.attendance.labels|length * 46 + 70]|max }}px">
+            <canvas id="attChart"></canvas>
+        </div>
     </div>
 </section>
 {% endblock %}
@@ -27,30 +31,28 @@
 <script>
     const data = {{ data|tojson }};
     const low = {{ low }};
-    const noLegend = { legend: { display: false } };
+    applyChartTheme();
 
-    new Chart(document.getElementById("courseChart"), {
-        type: "bar",
-        data: { labels: data.courses.labels, datasets: [{ data: data.courses.values, backgroundColor: "#4f46e5" }] },
-        options: { plugins: noLegend, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
-    });
-
-    new Chart(document.getElementById("marksChart"), {
-        type: "bar",
-        data: { labels: data.marks.labels, datasets: [{ data: data.marks.values, backgroundColor: "#2563eb" }] },
-        options: { plugins: noLegend, scales: { y: { min: 0, max: 100 } } }
-    });
-
-    new Chart(document.getElementById("attChart"), {
+    const barChart = (id, block, colors, horizontal, valueAxis) => registerChart(new Chart(document.getElementById(id), {
         type: "bar",
         data: {
-            labels: data.attendance.labels,
-            datasets: [{
-                data: data.attendance.values,
-                backgroundColor: data.attendance.values.map(v => v !== null && v < low ? "#dc2626" : "#16a34a")
-            }]
+            labels: block.labels,
+            datasets: [{ data: block.values, backgroundColor: colors, borderRadius: 8, maxBarThickness: 30 }]
         },
-        options: { plugins: noLegend, scales: { y: { min: 0, max: 100 } } }
-    });
+        options: {
+            indexAxis: horizontal ? "y" : "x",
+            maintainAspectRatio: !horizontal,
+            plugins: { legend: { display: false } },
+            scales: horizontal
+                ? { x: valueAxis, y: { grid: { display: false } } }
+                : { y: valueAxis, x: { grid: { display: false } } }
+        }
+    }));
+
+    barChart("courseChart", data.courses, "#a855f7", false, { beginAtZero: true, ticks: { precision: 0 } });
+    barChart("marksChart", data.marks, "#6d4aff", true, { min: 0, max: 100 });
+    barChart("attChart", data.attendance,
+        data.attendance.values.map(v => v !== null && v < low ? "#f43f5e" : "#10b981"),
+        true, { min: 0, max: 100 });
 </script>
 {% endblock %}
