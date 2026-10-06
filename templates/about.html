@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}About | StudentHub{% endblock %}
+{% block content %}
+<section class="hero">
+    <div>
+        <p class="tag">ABOUT US</p>
+        <h1>Built for simple student management.</h1>
+        <p>
+            StudentHub keeps student records, marks and attendance organized
+            and up to date, with separate access for admins, teachers and students.
+        </p>
+    </div>
+</section>
+
+<section class="cards">
+    <div class="card"><h2>Admin</h2><p>Manages students, teachers, courses and subjects.</p></div>
+    <div class="card"><h2>Teacher</h2><p>Takes attendance and enters marks for their own subjects.</p></div>
+    <div class="card"><h2>Student</h2><p>Views their own marks and attendance.</p></div>
+</section>
+
+<section class="students">
+    <h2>What You Can Do</h2>
+    <table>
+        <thead><tr><th>Feature</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Manage Students</td><td>Register students; a login is created automatically.</td></tr>
+            <tr><td>Mark Attendance</td><td>Teachers record attendance per subject and date.</td></tr>
+            <tr><td>Enter Marks</td><td>Teachers record marks per exam; students see charts and percentages.</td></tr>
+        </tbody>
+    </table>
+</section>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Subjects | StudentHub{% endblock %}
+{% block content %}
+
+<section class="students">
+    <h2>Add subject</h2>
+    <form method="POST" action="{{ url_for('admin_subjects') }}" class="stack">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Subject name</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>Course</label>
+                <select name="course_id" required>
+                    <option value="">Select course</option>
+                    {% for c in courses %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Teacher</label>
+                <select name="teacher_id">
+                    <option value="">Unassigned</option>
+                    {% for t in teachers %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="view-btn">Add subject</button>
+        </div>
+    </form>
+</section>
+
+<section class="students">
+    <h2>Subjects</h2>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>Subject</th><th>Course</th><th>Teacher</th><th></th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for s in subjects %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.course }}</td>
+                <td>
+                    <form action="{{ url_for('assign_teacher', subject_id=s.id) }}" method="POST" class="row-form">
+                        <select name="teacher_id">
+                            <option value="">Unassigned</option>
+                            {% for t in teachers %}
+                            <option value="{{ t.id }}" {% if s.teacher_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="view-btn">Save</button>
+                    </form>
+                </td>
+                <td><a href="{{ url_for('subject_detail', subject_id=s.id) }}" class="view-btn">Open</a></td>
+                <td>
+                    <form action="{{ url_for('delete_subject', subject_id=s.id) }}" method="POST" class="inline-form"
+                          onsubmit="return confirm('Delete this subject and its marks and attendance?');">
+                        <button type="submit" class="delete-btn">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No subjects yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+
+<section class="students">
+    <h2>Add course</h2>
+    <form method="POST" action="{{ url_for('add_course') }}" class="row-form">
+        <input type="text" name="name" placeholder="Course name" required>
+        <button type="submit" class="view-btn">Add course</button>
+    </form>
+</section>
+
+{% endblock %}

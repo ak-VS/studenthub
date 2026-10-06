@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudentHub</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <header class="navbar">
+
+        <div class="logo">
+            StudentHub
+        </div>
+
+        <nav>
+            <a href="/">Dashboard</a>
+            <a href="/students">Students</a>
+            <a href="/student/add">Add Student</a>
+            <a href="/about">About</a>
+        </nav>
+
+    </header>
+
+    <main class="container">
+
+        <section class="hero">
+
+            <div>
+
+                <p class="tag">
+                    STUDENT MANAGEMENT SYSTEM
+                </p>
+
+                <h1>
+                    Manage Students Easily.
+                </h1>
+
+                <p>
+                    A simple and modern platform to manage
+                    student information in one place.
+                </p>
+
+                <button id="welcomeButton">
+                    Get Started
+                </button>
+
+            </div>
+
+        </section>
+
+        <section class="cards">
+
+            <div class="card">
+                <h2>{{ total_students }}</h2>
+                <p>Total Students</p>
+            </div>
+
+            <div class="card">
+                <h2>{{ active_students }}</h2>
+                <p>Active Students</p>
+            </div>
+
+            <div class="card">
+                <h2>{{ inactive_students }}</h2>
+                <p>Inactive Students</p>
+            </div>
+
+            <div class="card">
+                <h2>{{ total_courses }}</h2>
+                <p>Total Courses</p>
+            </div>
+
+        </section>
+
+        <section class="students">
+
+            <h2>Recent Students</h2>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Course</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for student in recent_students %}
+
+                    <tr>
+
+                        <td>{{ student.id }}</td>
+                        <td>{{ student.name }}</td>
+                        <td>{{ student.course }}</td>
+                        <td>{{ student.status }}</td>
+
+                        <td>
+
+                            <a
+                                href="{{ url_for('student_detail', student_id=student.id) }}"
+                                class="view-btn"
+                            >
+                                View
+                            </a>
+
+                            <a
+                                href="{{ url_for('edit_student', student_id=student.id) }}"
+                                class="view-btn"
+                            >
+                                Edit
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </section>
+
+        <section class="students">
+
+            <h2>Course Statistics</h2>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Course</th>
+                        <th>Total Students</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for item in course_stats %}
+
+                    <tr>
+
+                        <td>{{ item.course }}</td>
+                        <td>{{ item.total }}</td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </section>
+
+    </main>
+
+    <footer>
+        <p>StudentHub &copy; 2026</p>
+    </footer>
+
+    <script src="/static/script.js"></script>
+
+</body>
+
+</html>

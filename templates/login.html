@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Login | StudentHub{% endblock %}
+{% block content %}
+<section class="students login-box">
+    <h2>Sign in</h2>
+    <form method="POST" class="stack">
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required autofocus>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" class="view-btn">Sign in</button>
+    </form>
+    <p class="muted hint">
+        Students: your password is your date of birth as DDMMYYYY until you change it.
+    </p>
+</section>
+{% endblock %}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}StudentHub{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo">StudentHub</div>
+
+        <nav>
+            {% if session.role == 'admin' %}
+                <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('students') }}">Students</a>
+                <a href="{{ url_for('add_student') }}">Add Student</a>
+                <a href="{{ url_for('admin_teachers') }}">Teachers</a>
+                <a href="{{ url_for('admin_subjects') }}">Subjects</a>
+            {% elif session.role == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}">My Subjects</a>
+            {% elif session.role == 'student' %}
+                <a href="{{ url_for('student_dashboard') }}">My Results</a>
+            {% endif %}
+
+            <a href="{{ url_for('about') }}">About</a>
+
+            {% if session.user_id %}
+                <a href="{{ url_for('change_password') }}">Password</a>
+                <a href="{{ url_for('logout') }}">Logout ({{ session.name }})</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main class="container">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+
+    </main>
+
+    <footer>
+        <p>StudentHub &copy; 2026</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

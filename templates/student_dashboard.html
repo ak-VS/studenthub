@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}My Results | StudentHub{% endblock %}
+{% block content %}
+
+<section class="hero">
+    <div>
+        <p class="tag">{{ student.course }}</p>
+        <h1>{{ student.name }}</h1>
+        <p>Your marks and attendance for the current course.</p>
+    </div>
+</section>
+
+<section class="cards">
+    <div class="card">
+        <h2 class="{{ 'low' if overall_att is not none and overall_att < low else '' }}">
+            {% if overall_att is none %}-{% else %}{{ overall_att }}%{% endif %}
+        </h2>
+        <p>Overall attendance</p>
+    </div>
+    <div class="card"><h2>{{ rows|length }}</h2><p>Subjects</p></div>
+</section>
+
+{% if overall_att is not none and overall_att < low %}
+<div class="error">Your overall attendance is below {{ low }}%. Please attend more classes.</div>
+{% endif %}
+
+<section class="students">
+    <div class="section-head">
+        <h2>Subjects</h2>
+        <button type="button" class="view-btn no-print" onclick="window.print()">Print report</button>
+    </div>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>Subject</th><th>Teacher</th><th>Attendance</th><th>Marks</th><th>Average</th></tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.name }}</td>
+                <td>{{ r.teacher or '-' }}</td>
+                <td>
+                    {% if r.att_pct is none %}<span class="muted">No data</span>
+                    {% else %}
+                        <span class="{{ 'low' if r.low else '' }}">{{ r.att_pct }}%</span>
+                        <span class="muted">({{ r.present }}/{{ r.total }})</span>
+                        {% if r.low %}<span class="badge badge-red">low</span>{% endif %}
+                    {% endif %}
+                </td>
+                <td>
+                    {% for m in r.marks %}
+                        {{ m.exam }}: {{ '%g'|format(m.obtained) }}/{{ '%g'|format(m.max) }}{% if not loop.last %}<br>{% endif %}
+                    {% else %}
+                        <span class="muted">No marks yet</span>
+                    {% endfor %}
+                </td>
+                <td>{% if r.marks_pct is none %}-{% else %}{{ r.marks_pct }}%{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No subjects have been set up for your course yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+
+{% if rows %}
+<section class="charts">
+    <div class="students">
+        <h2>Marks by subject (%)</h2>
+        <canvas id="marksChart"></canvas>
+    </div>
+    <div class="students">
+        <h2>Attendance by subject (%)</h2>
+        <canvas id="attChart"></canvas>
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if rows %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const chart = {{ chart|tojson }};
+    const low = {{ low }};
+
+    new Chart(document.getElementById("marksChart"), {
+        type: "bar",
+        data: {
+            labels: chart.labels,
+            datasets: [{ label: "Marks %", data: chart.marks, backgroundColor: "#2563eb" }]
+        },
+        options: { scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById("attChart"), {
+        type: "bar",
+        data: {
+            labels: chart.labels,
+            datasets: [{
+                label: "Attendance %",
+                data: chart.attendance,
+                backgroundColor: chart.attendance.map(v => v !== null && v < low ? "#dc2626" : "#16a34a")
+            }]
+        },
+        options: { scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+    });
+</script>
+{% endif %}
+{% endblock %}

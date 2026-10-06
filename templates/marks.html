@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Marks | StudentHub{% endblock %}
+{% block content %}
+<section class="students">
+    <h2>Marks: {{ subject.name }}</h2>
+
+    <form method="GET" class="filters">
+        <input type="text" name="exam_type" list="exam-list" value="{{ exam }}"
+               placeholder="Exam name, e.g. Midterm" required>
+        <datalist id="exam-list">
+            {% for e in exams %}<option value="{{ e }}">{% endfor %}
+            <option value="Quiz 1"><option value="Midterm"><option value="Assignment"><option value="Final">
+        </datalist>
+        <button type="submit">Load exam</button>
+    </form>
+
+    {% if exam %}
+    <form method="POST">
+        <input type="hidden" name="exam_type" value="{{ exam }}">
+
+        <div class="form-group maxbox">
+            <label>Maximum marks for {{ exam }}</label>
+            <input type="number" name="max_marks" value="{{ '%g'|format(max_marks) }}" min="1" step="any" required>
+        </div>
+
+        <div class="table-wrap">
+        <table>
+            <thead><tr><th>Student</th><th>Marks</th></tr></thead>
+            <tbody>
+                {% for s in students %}
+                <tr>
+                    <td>{{ s.name }}</td>
+                    <td>
+                        <input type="number" name="marks_{{ s.id }}" min="0" step="any"
+                               value="{{ '%g'|format(existing[s.id]) if s.id in existing else '' }}"
+                               class="marks-input">
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="2">No active students in this course.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        <p class="muted">Leave a box empty to skip that student.</p>
+
+        <div class="action-buttons">
+            <button type="submit" class="view-btn">Save marks</button>
+            <a href="{{ url_for('subject_detail', subject_id=subject.id) }}" class="view-btn muted-btn">Back</a>
+        </div>
+    </form>
+    {% else %}
+    <p class="muted">Choose or type an exam name above to start entering marks.</p>
+    {% endif %}
+</section>
+{% endblock %}

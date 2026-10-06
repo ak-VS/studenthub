@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}My Subjects | StudentHub{% endblock %}
+{% block content %}
+<section class="students">
+    <h2>My subjects</h2>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>Subject</th><th>Course</th><th>Students</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for s in subjects %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.course }}</td>
+                <td>{{ s.student_count }}</td>
+                <td>
+                    <a href="{{ url_for('subject_detail', subject_id=s.id) }}" class="view-btn">Overview</a>
+                    <a href="{{ url_for('subject_attendance', subject_id=s.id) }}" class="view-btn">Attendance</a>
+                    <a href="{{ url_for('subject_marks', subject_id=s.id) }}" class="view-btn">Marks</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No subjects assigned to you yet. Ask an admin to assign one.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+{% endblock %}

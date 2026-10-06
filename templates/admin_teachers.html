@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Teachers | StudentHub{% endblock %}
+{% block content %}
+
+<section class="students">
+    <h2>Add teacher</h2>
+    <form method="POST" class="stack">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Full name</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>Email (also the login)</label>
+                <input type="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label>Temporary password (6+ characters)</label>
+                <input type="text" name="password" minlength="6" required>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="view-btn">Add teacher</button>
+        </div>
+    </form>
+</section>
+
+<section class="students">
+    <h2>Teachers</h2>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Email</th><th>Subjects</th><th>Reset password</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for t in teachers %}
+            <tr>
+                <td>{{ t.name }}</td>
+                <td>{{ t.email }}</td>
+                <td>{{ t.subjects }}</td>
+                <td>
+                    <form action="{{ url_for('reset_password', user_id=t.id) }}" method="POST" class="row-form">
+                        <input type="text" name="password" placeholder="New password" minlength="6" required>
+                        <button type="submit" class="view-btn">Reset</button>
+                    </form>
+                </td>
+                <td>
+                    <form action="{{ url_for('delete_teacher', user_id=t.id) }}" method="POST" class="inline-form"
+                          onsubmit="return confirm('Delete this teacher?');">
+                        <button type="submit" class="delete-btn">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No teachers yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+
+{% endblock %}

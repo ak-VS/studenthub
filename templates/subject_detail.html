@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ subject.name }} | StudentHub{% endblock %}
+{% block content %}
+<section class="students">
+    <h2>{{ subject.name }} <span class="muted">({{ subject.course }})</span></h2>
+
+    <div class="action-buttons nomargin">
+        <a href="{{ url_for('subject_attendance', subject_id=subject.id) }}" class="view-btn">Take attendance</a>
+        <a href="{{ url_for('subject_marks', subject_id=subject.id) }}" class="view-btn">Enter marks</a>
+        <a href="{{ url_for('subject_export', subject_id=subject.id, type='marks') }}" class="view-btn muted-btn">Export marks CSV</a>
+        <a href="{{ url_for('subject_export', subject_id=subject.id, type='attendance') }}" class="view-btn muted-btn">Export attendance CSV</a>
+    </div>
+
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>Student</th><th>Email</th><th>Attendance</th><th>Marks</th></tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.name }}</td>
+                <td>{{ r.email }}</td>
+                <td>
+                    {% if r.att_pct is none %}<span class="muted">No data</span>
+                    {% else %}<span class="{{ 'low' if r.att_pct < low else '' }}">{{ r.att_pct }}%</span>
+                    {% if r.att_pct < low %}<span class="badge badge-red">low</span>{% endif %}
+                    {% endif %}
+                </td>
+                <td>{% if r.marks_pct is none %}<span class="muted">No data</span>{% else %}{{ r.marks_pct }}%{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No active students in this course.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+{% endblock %}

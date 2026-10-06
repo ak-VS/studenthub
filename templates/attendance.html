@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Attendance | StudentHub{% endblock %}
+{% block content %}
+<section class="students">
+    <h2>Attendance: {{ subject.name }}</h2>
+
+    <form method="GET" class="filters">
+        <input type="date" name="date" value="{{ att_date }}">
+        <button type="submit">Load date</button>
+    </form>
+
+    {% if existing %}
+    <p class="muted">Attendance was already saved for this date. Saving again will update it.</p>
+    {% endif %}
+
+    <form method="POST">
+        <input type="hidden" name="date" value="{{ att_date }}">
+        <div class="table-wrap">
+        <table>
+            <thead><tr><th>Student</th><th>Present</th></tr></thead>
+            <tbody>
+                {% for s in students %}
+                <tr>
+                    <td>{{ s.name }}</td>
+                    <td>
+                        <input type="checkbox" name="present" value="{{ s.id }}"
+                            {% if existing.get(s.id, 'Present') == 'Present' %}checked{% endif %}>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="2">No active students in this course.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        <div class="action-buttons">
+            <button type="submit" class="view-btn">Save attendance</button>
+            <a href="{{ url_for('subject_detail', subject_id=subject.id) }}" class="view-btn muted-btn">Back</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

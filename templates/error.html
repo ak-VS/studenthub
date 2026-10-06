@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Error {{ code }} | StudentHub{% endblock %}
+{% block content %}
+<section class="students">
+    <h2>{{ code }}</h2>
+    <p class="muted">{{ message }}</p>
+    <div class="action-buttons">
+        <a href="{{ url_for('home') }}" class="view-btn">Go to my home page</a>
+    </div>
+</section>
+{% endblock %}
