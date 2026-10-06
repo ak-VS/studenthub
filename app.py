@@ -7,7 +7,7 @@ from functools import wraps
 
 import mysql.connector
 from flask import (
-    Flask, Response, abort, flash, jsonify, redirect,
+    Flask, Response, abort, flash, g, jsonify, redirect,
     render_template, request, session, url_for,
 )
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -29,27 +29,47 @@ HOME = {
 
 # ---------------------------------------------------------------- helpers
 
+def get_conn():
+    """One database connection per request (opening SSL connections is slow)."""
+    conn = g.get("db")
+    if conn is None or not conn.is_connected():
+        conn = g.db = get_db_connection()
+    return conn
+
+
+@app.teardown_appcontext
+def close_conn(exc):
+    conn = g.pop("db", None)
+    if conn is not None:
+        try:
+            conn.close()
+        except mysql.connector.Error:
+            pass
+
+
 def q(sql, params=(), one=False):
     """Run a SELECT and return dict rows (or one row)."""
-    conn = get_db_connection()
+    cur = get_conn().cursor(dictionary=True)
     try:
-        cur = conn.cursor(dictionary=True)
         cur.execute(sql, params)
         return cur.fetchone() if one else cur.fetchall()
     finally:
-        conn.close()
+        cur.close()
 
 
 def run(sql, params=()):
     """Run a single INSERT/UPDATE/DELETE and return lastrowid."""
-    conn = get_db_connection()
+    conn = get_conn()
+    cur = conn.cursor()
     try:
-        cur = conn.cursor()
         cur.execute(sql, params)
         conn.commit()
         return cur.lastrowid
+    except mysql.connector.Error:
+        conn.rollback()
+        raise
     finally:
-        conn.close()
+        cur.close()
 
 
 def hash_pw(password):
@@ -200,15 +220,22 @@ def home():
 @app.route("/admin")
 @role_required("admin")
 def admin_dashboard():
-    total_students = q("SELECT COUNT(*) AS n FROM students", one=True)["n"]
-    active_students = q(
-        "SELECT COUNT(*) AS n FROM students WHERE status='Active'", one=True
-    )["n"]
-    total_courses = q("SELECT COUNT(*) AS n FROM courses", one=True)["n"]
-    total_teachers = q(
-        "SELECT COUNT(*) AS n FROM users WHERE role='teacher'", one=True
-    )["n"]
-    total_subjects = q("SELECT COUNT(*) AS n FROM subjects", one=True)["n"]
+    counts = q(
+        """
+        SELECT
+            (SELECT COUNT(*) FROM students) AS total_students,
+            (SELECT COUNT(*) FROM students WHERE status = 'Active') AS active_students,
+            (SELECT COUNT(*) FROM courses) AS total_courses,
+            (SELECT COUNT(*) FROM users WHERE role = 'teacher') AS total_teachers,
+            (SELECT COUNT(*) FROM subjects) AS total_subjects
+        """,
+        one=True,
+    )
+    total_students = counts["total_students"]
+    active_students = counts["active_students"]
+    total_courses = counts["total_courses"]
+    total_teachers = counts["total_teachers"]
+    total_subjects = counts["total_subjects"]
 
     recent_students = q(
         """
