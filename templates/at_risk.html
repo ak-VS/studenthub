@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}At-risk students | StudentHub{% endblock %}
+{% block content %}
+<section class="students">
+    <h2>At-risk students</h2>
+    <p class="muted">Attendance below {{ low_att }}% or overall marks below {{ low_marks }}%.</p>
+
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>Student</th><th>Course</th><th>Attendance</th><th>Marks</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>
+                    {% if session.role == 'admin' %}
+                    <a href="{{ url_for('student_detail', student_id=r.id) }}">{{ r.name }}</a>
+                    {% else %}{{ r.name }}{% endif %}
+                </td>
+                <td>{{ r.course }}</td>
+                <td>
+                    {% if r.att_pct is none %}<span class="muted">No data</span>
+                    {% else %}<span class="{{ 'low' if r.att_pct < low_att else '' }}">{{ r.att_pct }}%</span>{% endif %}
+                </td>
+                <td>
+                    {% if r.marks_pct is none %}<span class="muted">No data</span>
+                    {% else %}<span class="{{ 'low' if r.marks_pct < low_marks else '' }}">{{ r.marks_pct }}%</span>{% endif %}
+                </td>
+                <td>{% for why in r.reasons %}<span class="badge badge-red">{{ why }}</span>{% endfor %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No students are below the thresholds right now.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+{% endblock %}

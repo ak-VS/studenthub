@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Report card | StudentHub{% endblock %}
+{% block content %}
+<section class="students report">
+
+    <div class="section-head no-print">
+        <h2>Report card</h2>
+        <button type="button" class="view-btn" onclick="window.print()">Print or save as PDF</button>
+    </div>
+
+    <div class="report-header">
+        <h1>StudentHub</h1>
+        <p>Student Report Card</p>
+    </div>
+
+    <table class="info">
+        <tbody>
+            <tr><th>Name</th><td>{{ s.student.name }}</td><th>Course</th><td>{{ s.student.course }}</td></tr>
+            <tr><th>Email</th><td>{{ s.student.email }}</td><th>Student ID</th><td>{{ s.student.id }}</td></tr>
+            <tr>
+                <th>Date of birth</th><td>{{ s.student.date_of_birth or '-' }}</td>
+                <th>Issued on</th><td>{{ today.strftime('%d %b %Y') }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Subject</th><th>Exams</th><th>Marks</th><th>Percentage</th>
+                <th>Grade</th><th>Attendance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in s.rows %}
+            <tr>
+                <td>{{ r.name }}</td>
+                <td>
+                    {% for m in r.marks %}{{ m.exam }} {{ '%g'|format(m.obtained) }}/{{ '%g'|format(m.max) }}{% if not loop.last %}<br>{% endif %}
+                    {% else %}-{% endfor %}
+                </td>
+                <td>{% if r.marks %}{{ '%g'|format(r.obtained) }} / {{ '%g'|format(r.max) }}{% else %}-{% endif %}</td>
+                <td>{% if r.marks_pct is none %}-{% else %}{{ r.marks_pct }}%{% endif %}</td>
+                <td>{{ r.grade }}{% if r.passed is false %} <span class="badge badge-red">fail</span>{% endif %}</td>
+                <td>
+                    {% if r.att_pct is none %}-{% else %}
+                    <span class="{{ 'low' if r.low else '' }}">{{ r.att_pct }}%</span>
+                    <span class="muted small">({{ r.present }}/{{ r.total }})</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No subjects set up for this course.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+
+    <table class="info summary">
+        <tbody>
+            <tr>
+                <th>Overall marks</th>
+                <td>{% if s.overall_marks is none %}-{% else %}{{ s.overall_marks }}%{% endif %}</td>
+                <th>Overall grade</th><td>{{ s.overall_grade }}</td>
+            </tr>
+            <tr>
+                <th>Overall attendance</th>
+                <td>{% if s.overall_att is none %}-{% else %}{{ s.overall_att }}%{% endif %}</td>
+                <th>Class rank</th>
+                <td>{% if s.rank %}{{ s.rank }} of {{ s.class_size }}{% else %}-{% endif %}</td>
+            </tr>
+            <tr>
+                <th>Result</th>
+                <td colspan="3"><strong class="{{ 'low' if s.result == 'FAIL' else '' }}">{{ s.result }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p class="muted small">
+        Grades: A+ 90 and above, A 80, B+ 70, B 60, C 50, D 40, F below 40.
+        A subject below 40% is a fail. Attendance under {{ low }}% is flagged.
+    </p>
+
+    <div class="signatures">
+        <div>Class teacher</div>
+        <div>Principal</div>
+    </div>
+</section>
+{% endblock %}

@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block title %}My Subjects | StudentHub{% endblock %}
 {% block content %}
+<section class="cards">
+    <a class="card card-link" href="{{ url_for('at_risk') }}">
+        <h2 class="{{ 'low' if at_risk_count else '' }}">{{ at_risk_count }}</h2><p>At-risk students</p>
+    </a>
+    <a class="card card-link" href="{{ url_for('leave_requests') }}">
+        <h2>{{ pending_leaves }}</h2><p>Pending leave requests</p>
+    </a>
+</section>
+
 <section class="students">
     <h2>My subjects</h2>
     <div class="table-wrap">

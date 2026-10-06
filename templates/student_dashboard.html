@@ -17,8 +17,30 @@
         </h2>
         <p>Overall attendance</p>
     </div>
-    <div class="card"><h2>{{ rows|length }}</h2><p>Subjects</p></div>
+    <div class="card">
+        <h2>{% if summary.overall_marks is none %}-{% else %}{{ summary.overall_marks }}%{% endif %}</h2>
+        <p>Overall marks ({{ summary.overall_grade }})</p>
+    </div>
+    <div class="card">
+        <h2>{% if summary.rank %}{{ summary.rank }}<span class="muted small"> / {{ summary.class_size }}</span>{% else %}-{% endif %}</h2>
+        <p>Class rank</p>
+    </div>
 </section>
+
+{% if announcements %}
+<section class="students">
+    <h2>Announcements</h2>
+    {% for a in announcements %}
+    <div class="notice">
+        <strong>{{ a.title }}</strong>
+        <span class="muted small">
+            {{ a.created_at.strftime('%d %b %Y') }} by {{ a.author or 'Admin' }}{% if a.course %} for {{ a.course }}{% endif %}
+        </span>
+        <p>{{ a.body }}</p>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}
 
 {% if overall_att is not none and overall_att < low %}
 <div class="error">Your overall attendance is below {{ low }}%. Please attend more classes.</div>
@@ -27,12 +49,12 @@
 <section class="students">
     <div class="section-head">
         <h2>Subjects</h2>
-        <button type="button" class="view-btn no-print" onclick="window.print()">Print report</button>
+        <a href="{{ url_for('my_report') }}" class="view-btn no-print">View report card</a>
     </div>
     <div class="table-wrap">
     <table>
         <thead>
-            <tr><th>Subject</th><th>Teacher</th><th>Attendance</th><th>Marks</th><th>Average</th></tr>
+            <tr><th>Subject</th><th>Teacher</th><th>Attendance</th><th>Marks</th><th>Average</th><th>Grade</th></tr>
         </thead>
         <tbody>
             {% for r in rows %}
@@ -55,13 +77,29 @@
                     {% endfor %}
                 </td>
                 <td>{% if r.marks_pct is none %}-{% else %}{{ r.marks_pct }}%{% endif %}</td>
+                <td>{{ r.grade }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="5">No subjects have been set up for your course yet.</td></tr>
+            <tr><td colspan="6">No subjects have been set up for your course yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>
     </div>
+</section>
+
+<section class="students">
+    <div class="section-head">
+        <h2>Leave requests</h2>
+        <a href="{{ url_for('student_leave') }}" class="view-btn">Apply for leave</a>
+    </div>
+    {% for l in leaves %}
+    <p>
+        {{ l.from_date.strftime('%d %b') }} to {{ l.to_date.strftime('%d %b %Y') }}: {{ l.reason }}
+        <span class="badge {{ {'Pending':'badge-amber','Approved':'badge-green','Rejected':'badge-red'}[l.status] }}">{{ l.status }}</span>
+    </p>
+    {% else %}
+    <p class="muted">No leave requests yet.</p>
+    {% endfor %}
 </section>
 
 {% if rows %}

@@ -17,6 +17,12 @@
     <div class="card"><h2>{{ total_courses }}</h2><p>Courses</p></div>
     <div class="card"><h2>{{ total_teachers }}</h2><p>Teachers</p></div>
     <div class="card"><h2>{{ total_subjects }}</h2><p>Subjects</p></div>
+    <a class="card card-link" href="{{ url_for('at_risk') }}">
+        <h2 class="{{ 'low' if at_risk_count else '' }}">{{ at_risk_count }}</h2><p>At-risk students</p>
+    </a>
+    <a class="card card-link" href="{{ url_for('leave_requests') }}">
+        <h2>{{ pending_leaves }}</h2><p>Pending leave requests</p>
+    </a>
 </section>
 
 <section class="students">

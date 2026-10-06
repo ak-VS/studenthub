@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Announcements | StudentHub{% endblock %}
+{% block content %}
+
+<section class="students">
+    <h2>Post an announcement</h2>
+    <form method="POST" class="stack">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" name="title" maxlength="150" required>
+            </div>
+            <div class="form-group">
+                <label>Audience</label>
+                <select name="course_id" {% if session.role != 'admin' %}required{% endif %}>
+                    {% if session.role == 'admin' %}<option value="">All students</option>
+                    {% else %}<option value="">Select course</option>{% endif %}
+                    {% for c in courses %}<option value="{{ c.id }}">{{ c.name }} students</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Message</label>
+            <textarea name="body" rows="4" maxlength="2000" required></textarea>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="view-btn">Post announcement</button>
+        </div>
+    </form>
+</section>
+
+<section class="students">
+    <h2>{% if session.role == 'admin' %}All announcements{% else %}Your announcements{% endif %}</h2>
+    {% for a in items %}
+    <div class="notice">
+        <div class="section-head">
+            <div>
+                <strong>{{ a.title }}</strong>
+                <span class="muted small">
+                    {{ a.created_at.strftime('%d %b %Y') }} by {{ a.author or 'Unknown' }}, for {{ a.course or 'all students' }}
+                </span>
+            </div>
+            <form action="{{ url_for('delete_announcement', item_id=a.id) }}" method="POST" class="inline-form"
+                  onsubmit="return confirm('Delete this announcement?');">
+                <button type="submit" class="delete-btn">Delete</button>
+            </form>
+        </div>
+        <p>{{ a.body }}</p>
+    </div>
+    {% else %}
+    <p class="muted">Nothing posted yet.</p>
+    {% endfor %}
+</section>
+
+{% endblock %}

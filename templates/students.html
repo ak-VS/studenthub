@@ -5,12 +5,15 @@
 
     <div class="section-head">
         <h2>Students</h2>
+        <div class="action-buttons nomargin">
+        <a href="{{ url_for('add_student') }}" class="view-btn">Add student</a>
         <form action="{{ url_for('generate_logins') }}" method="POST" class="inline-form">
             <button type="submit" class="view-btn"
                 onclick="return confirm('Create logins for students who do not have one?');">
                 Generate missing logins
             </button>
         </form>
+        </div>
     </div>
 
     <form method="GET" action="{{ url_for('students') }}" class="filters">

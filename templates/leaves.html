@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Leave requests | StudentHub{% endblock %}
+{% block content %}
+<section class="students">
+    <h2>Leave requests</h2>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>Student</th><th>Course</th><th>Dates</th><th>Reason</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for l in leaves %}
+            <tr>
+                <td>{{ l.student }}</td>
+                <td>{{ l.course }}</td>
+                <td>{{ l.from_date.strftime('%d %b') }} to {{ l.to_date.strftime('%d %b %Y') }}</td>
+                <td>{{ l.reason }}</td>
+                <td>
+                    <span class="badge {{ {'Pending':'badge-amber','Approved':'badge-green','Rejected':'badge-red'}[l.status] }}">{{ l.status }}</span>
+                    {% if l.reviewer %}<span class="muted small">by {{ l.reviewer }}</span>{% endif %}
+                </td>
+                <td>
+                    {% if l.status == 'Pending' %}
+                    <div class="row-form">
+                        <form action="{{ url_for('decide_leave', leave_id=l.id, action='approve') }}" method="POST">
+                            <button type="submit" class="view-btn">Approve</button>
+                        </form>
+                        <form action="{{ url_for('decide_leave', leave_id=l.id, action='reject') }}" method="POST">
+                            <button type="submit" class="delete-btn">Reject</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No leave requests.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+{% endblock %}

@@ -15,13 +15,21 @@
             {% if session.role == 'admin' %}
                 <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('students') }}">Students</a>
-                <a href="{{ url_for('add_student') }}">Add Student</a>
                 <a href="{{ url_for('admin_teachers') }}">Teachers</a>
                 <a href="{{ url_for('admin_subjects') }}">Subjects</a>
+                <a href="{{ url_for('analytics') }}">Analytics</a>
+                <a href="{{ url_for('at_risk') }}">At Risk</a>
+                <a href="{{ url_for('leave_requests') }}">Leaves</a>
+                <a href="{{ url_for('announcements') }}">Notices</a>
             {% elif session.role == 'teacher' %}
                 <a href="{{ url_for('teacher_dashboard') }}">My Subjects</a>
+                <a href="{{ url_for('at_risk') }}">At Risk</a>
+                <a href="{{ url_for('leave_requests') }}">Leaves</a>
+                <a href="{{ url_for('announcements') }}">Notices</a>
             {% elif session.role == 'student' %}
                 <a href="{{ url_for('student_dashboard') }}">My Results</a>
+                <a href="{{ url_for('my_report') }}">Report Card</a>
+                <a href="{{ url_for('student_leave') }}">Leave</a>
             {% endif %}
 
             <a href="{{ url_for('about') }}">About</a>

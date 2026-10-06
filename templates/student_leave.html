@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Leave | StudentHub{% endblock %}
+{% block content %}
+
+<section class="students">
+    <h2>Apply for leave</h2>
+    <form method="POST" class="stack">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>From</label>
+                <input type="date" name="from_date" value="{{ today }}" required>
+            </div>
+            <div class="form-group">
+                <label>To</label>
+                <input type="date" name="to_date" value="{{ today }}" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Reason</label>
+            <input type="text" name="reason" maxlength="255" required>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="view-btn">Send request</button>
+        </div>
+    </form>
+</section>
+
+<section class="students">
+    <h2>My requests</h2>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th>Dates</th><th>Reason</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for l in leaves %}
+            <tr>
+                <td>{{ l.from_date.strftime('%d %b') }} to {{ l.to_date.strftime('%d %b %Y') }}</td>
+                <td>{{ l.reason }}</td>
+                <td>
+                    <span class="badge {{ {'Pending':'badge-amber','Approved':'badge-green','Rejected':'badge-red'}[l.status] }}">{{ l.status }}</span>
+                    {% if l.reviewer %}<span class="muted small">by {{ l.reviewer }}</span>{% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">No requests yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+
+{% endblock %}

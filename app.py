@@ -19,6 +19,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 LOW_ATTENDANCE = 75
+LOW_MARKS = 40  # pass mark (%) and at-risk threshold
 HOME = {
     "admin": "admin_dashboard",
     "teacher": "teacher_dashboard",
@@ -66,6 +67,15 @@ def pct(part, whole):
     if not whole:
         return None
     return round(100 * float(part) / float(whole), 1)
+
+
+def grade_for(percent):
+    if percent is None:
+        return "-"
+    for cutoff, letter in ((90, "A+"), (80, "A"), (70, "B+"), (60, "B"), (50, "C"), (40, "D")):
+        if percent >= cutoff:
+            return letter
+    return "F"
 
 
 # ------------------------------------------------------------------- auth
@@ -227,6 +237,8 @@ def admin_dashboard():
         total_subjects=total_subjects,
         recent_students=recent_students,
         course_stats=course_stats,
+        at_risk_count=len(at_risk_rows()),
+        pending_leaves=pending_leave_count(),
     )
 
 
@@ -685,7 +697,11 @@ def teacher_dashboard():
         """,
         (session["user_id"],),
     )
-    return render_template("teacher_dashboard.html", subjects=subjects)
+    return render_template(
+        "teacher_dashboard.html", subjects=subjects,
+        at_risk_count=len(at_risk_rows(session["user_id"])),
+        pending_leaves=pending_leave_count(),
+    )
 
 
 @app.route("/subject/<int:subject_id>")
@@ -882,11 +898,8 @@ def subject_export(subject_id):
 
 # ---------------------------------------------------------------- student
 
-@app.route("/me")
-@role_required("student")
-def student_dashboard():
-    student_id = session["student_id"]  # never taken from the URL
-
+def student_summary(student_id):
+    """Everything a dashboard or report card needs for one student."""
     student = q(
         """
         SELECT s.*, c.name AS course
@@ -896,7 +909,7 @@ def student_dashboard():
         (student_id,), one=True,
     )
     if student is None:
-        abort(404)
+        return None
 
     subjects = q(
         """
@@ -928,14 +941,22 @@ def student_dashboard():
 
     rows = []
     tot_present = tot_classes = 0
+    all_obtained = all_max = 0.0
     for sub in subjects:
         a = att.get(sub["id"])
         present = int(a["present"]) if a else 0
         total = int(a["total"]) if a else 0
         tot_present += present
         tot_classes += total
+
         m = marks.get(sub["id"], [])
+        obtained = sum(x["obtained"] for x in m)
+        maximum = sum(x["max"] for x in m)
+        all_obtained += obtained
+        all_max += maximum
+
         att_pct = pct(present, total)
+        marks_pct = pct(obtained, maximum) if m else None
         rows.append({
             **sub,
             "present": present,
@@ -943,9 +964,78 @@ def student_dashboard():
             "att_pct": att_pct,
             "low": att_pct is not None and att_pct < LOW_ATTENDANCE,
             "marks": m,
-            "marks_pct": pct(sum(x["obtained"] for x in m), sum(x["max"] for x in m)) if m else None,
+            "obtained": obtained,
+            "max": maximum,
+            "marks_pct": marks_pct,
+            "grade": grade_for(marks_pct),
+            "passed": None if marks_pct is None else marks_pct >= LOW_MARKS,
         })
 
+    graded = [r for r in rows if r["marks_pct"] is not None]
+    if not graded:
+        result = "Incomplete"
+    elif all(r["passed"] for r in graded):
+        result = "PASS"
+    else:
+        result = "FAIL"
+
+    overall_marks = pct(all_obtained, all_max) if all_max else None
+
+    rank = None
+    class_size = 0
+    if all_max:
+        mine = 100 * all_obtained / all_max
+        everyone = [
+            100 * float(r["o"]) / float(r["mx"]) for r in q(
+                """
+                SELECT m.student_id, SUM(m.marks_obtained) AS o, SUM(m.max_marks) AS mx
+                FROM marks m JOIN students st ON st.id = m.student_id
+                WHERE st.course_id = %s
+                GROUP BY m.student_id
+                """,
+                (student["course_id"],),
+            ) if r["mx"]
+        ]
+        class_size = len(everyone)
+        rank = 1 + sum(1 for p in everyone if p > mine + 1e-9)
+
+    return {
+        "student": student,
+        "rows": rows,
+        "overall_att": pct(tot_present, tot_classes),
+        "overall_marks": overall_marks,
+        "overall_grade": grade_for(overall_marks),
+        "result": result,
+        "rank": rank,
+        "class_size": class_size,
+    }
+
+
+@app.route("/me")
+@role_required("student")
+def student_dashboard():
+    summary = student_summary(session["student_id"])  # never taken from the URL
+    if summary is None:
+        abort(404)
+
+    student = summary["student"]
+    rows = summary["rows"]
+
+    announcements = q(
+        """
+        SELECT a.title, a.body, a.created_at, u.name AS author, c.name AS course
+        FROM announcements a
+        LEFT JOIN users u ON u.id = a.author_id
+        LEFT JOIN courses c ON c.id = a.course_id
+        WHERE a.course_id IS NULL OR a.course_id = %s
+        ORDER BY a.created_at DESC LIMIT 5
+        """,
+        (student["course_id"],),
+    )
+    leaves = q(
+        "SELECT * FROM leave_requests WHERE student_id=%s ORDER BY created_at DESC LIMIT 3",
+        (student["id"],),
+    )
     chart = {
         "labels": [r["name"] for r in rows],
         "marks": [r["marks_pct"] for r in rows],
@@ -954,8 +1044,296 @@ def student_dashboard():
     return render_template(
         "student_dashboard.html",
         student=student, rows=rows, chart=chart,
-        overall_att=pct(tot_present, tot_classes), low=LOW_ATTENDANCE,
+        overall_att=summary["overall_att"], low=LOW_ATTENDANCE,
+        summary=summary, announcements=announcements, leaves=leaves,
     )
+
+
+def render_report(student_id):
+    summary = student_summary(student_id)
+    if summary is None:
+        abort(404)
+    return render_template("report_card.html", s=summary, today=date.today(), low=LOW_ATTENDANCE)
+
+
+@app.route("/me/report")
+@role_required("student")
+def my_report():
+    return render_report(session["student_id"])
+
+
+@app.route("/student/<int:student_id>/report")
+@role_required("admin")
+def student_report(student_id):
+    return render_report(student_id)
+
+
+@app.route("/me/leave", methods=["GET", "POST"])
+@role_required("student")
+def student_leave():
+    student_id = session["student_id"]
+
+    if request.method == "POST":
+        reason = request.form.get("reason", "").strip()[:255]
+        try:
+            from_date = datetime.strptime(request.form.get("from_date", ""), "%Y-%m-%d").date()
+            to_date = datetime.strptime(request.form.get("to_date", ""), "%Y-%m-%d").date()
+        except ValueError:
+            from_date = to_date = None
+
+        if not reason or from_date is None:
+            flash("Enter both dates and a reason.", "error")
+        elif to_date < from_date:
+            flash("The end date can't be before the start date.", "error")
+        else:
+            run(
+                "INSERT INTO leave_requests (student_id, from_date, to_date, reason) VALUES (%s, %s, %s, %s)",
+                (student_id, from_date, to_date, reason),
+            )
+            flash("Leave request sent.", "success")
+        return redirect(url_for("student_leave"))
+
+    leaves = q(
+        """
+        SELECT l.*, u.name AS reviewer
+        FROM leave_requests l LEFT JOIN users u ON u.id = l.reviewed_by
+        WHERE l.student_id = %s ORDER BY l.created_at DESC
+        """,
+        (student_id,),
+    )
+    return render_template("student_leave.html", leaves=leaves, today=date.today().isoformat())
+
+
+# ------------------------------------------- leave review (teacher / admin)
+
+def teacher_course_ids(user_id):
+    return {r["course_id"] for r in q("SELECT DISTINCT course_id FROM subjects WHERE teacher_id=%s", (user_id,))}
+
+
+def pending_leave_count():
+    if session["role"] == "teacher":
+        return q(
+            """
+            SELECT COUNT(*) AS n FROM leave_requests l JOIN students st ON st.id = l.student_id
+            WHERE l.status='Pending'
+              AND st.course_id IN (SELECT course_id FROM subjects WHERE teacher_id=%s)
+            """,
+            (session["user_id"],), one=True,
+        )["n"]
+    return q("SELECT COUNT(*) AS n FROM leave_requests WHERE status='Pending'", one=True)["n"]
+
+
+@app.route("/leaves")
+@role_required("teacher", "admin")
+def leave_requests():
+    sql = """
+        SELECT l.*, st.name AS student, c.name AS course, u.name AS reviewer
+        FROM leave_requests l
+        JOIN students st ON st.id = l.student_id
+        JOIN courses c ON c.id = st.course_id
+        LEFT JOIN users u ON u.id = l.reviewed_by
+    """
+    params = ()
+    if session["role"] == "teacher":
+        sql += " WHERE st.course_id IN (SELECT course_id FROM subjects WHERE teacher_id=%s)"
+        params = (session["user_id"],)
+    sql += " ORDER BY (l.status='Pending') DESC, l.created_at DESC LIMIT 100"
+    return render_template("leaves.html", leaves=q(sql, params))
+
+
+@app.route("/leaves/<int:leave_id>/<action>", methods=["POST"])
+@role_required("teacher", "admin")
+def decide_leave(leave_id, action):
+    if action not in ("approve", "reject"):
+        abort(404)
+
+    leave = q(
+        """
+        SELECT l.id, l.status, st.course_id
+        FROM leave_requests l JOIN students st ON st.id = l.student_id
+        WHERE l.id = %s
+        """,
+        (leave_id,), one=True,
+    )
+    if leave is None:
+        abort(404)
+    if session["role"] == "teacher" and leave["course_id"] not in teacher_course_ids(session["user_id"]):
+        abort(403)
+
+    if leave["status"] != "Pending":
+        flash("That request was already decided.", "error")
+    else:
+        run(
+            "UPDATE leave_requests SET status=%s, reviewed_by=%s WHERE id=%s",
+            ("Approved" if action == "approve" else "Rejected", session["user_id"], leave_id),
+        )
+        flash(f"Leave {action}d.", "success")
+    return redirect(url_for("leave_requests"))
+
+
+# ------------------------------------------------------------ announcements
+
+@app.route("/announcements", methods=["GET", "POST"])
+@role_required("teacher", "admin")
+def announcements():
+    if session["role"] == "teacher":
+        courses = q(
+            """
+            SELECT DISTINCT c.id, c.name FROM subjects s JOIN courses c ON c.id = s.course_id
+            WHERE s.teacher_id = %s ORDER BY c.name
+            """,
+            (session["user_id"],),
+        )
+    else:
+        courses = q("SELECT id, name FROM courses ORDER BY name")
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()[:150]
+        body = request.form.get("body", "").strip()[:2000]
+        course_id = request.form.get("course_id") or None
+
+        if not title or not body:
+            flash("Title and message are required.", "error")
+        elif course_id is None and session["role"] != "admin":
+            flash("Choose a course for this notice.", "error")
+        elif course_id is not None and course_id not in {str(c["id"]) for c in courses}:
+            abort(403)
+        else:
+            run(
+                "INSERT INTO announcements (title, body, author_id, course_id) VALUES (%s, %s, %s, %s)",
+                (title, body, session["user_id"], course_id),
+            )
+            flash("Announcement posted.", "success")
+        return redirect(url_for("announcements"))
+
+    sql = """
+        SELECT a.id, a.title, a.body, a.created_at, a.author_id, u.name AS author, c.name AS course
+        FROM announcements a
+        LEFT JOIN users u ON u.id = a.author_id
+        LEFT JOIN courses c ON c.id = a.course_id
+    """
+    params = ()
+    if session["role"] == "teacher":
+        sql += " WHERE a.author_id = %s"
+        params = (session["user_id"],)
+    sql += " ORDER BY a.created_at DESC LIMIT 50"
+    return render_template("announcements.html", items=q(sql, params), courses=courses)
+
+
+@app.route("/announcements/<int:item_id>/delete", methods=["POST"])
+@role_required("teacher", "admin")
+def delete_announcement(item_id):
+    if session["role"] == "admin":
+        run("DELETE FROM announcements WHERE id = %s", (item_id,))
+    else:
+        run("DELETE FROM announcements WHERE id = %s AND author_id = %s", (item_id, session["user_id"]))
+    flash("Announcement deleted.", "success")
+    return redirect(url_for("announcements"))
+
+
+# ---------------------------------------------------------------- at risk
+
+def at_risk_rows(teacher_id=None):
+    """Students under the attendance or marks threshold (scoped to a teacher if given)."""
+    scope = " AND sub.teacher_id = %s" if teacher_id else ""
+    params = (teacher_id,) if teacher_id else ()
+
+    student_sql = """
+        SELECT st.id, st.name, c.name AS course
+        FROM students st JOIN courses c ON c.id = st.course_id
+        WHERE st.status = 'Active'
+    """
+    if teacher_id:
+        student_sql += " AND st.course_id IN (SELECT course_id FROM subjects WHERE teacher_id = %s)"
+    student_sql += " ORDER BY st.name"
+
+    att = {
+        r["student_id"]: r for r in q(
+            """
+            SELECT a.student_id, SUM(a.status='Present') AS present, COUNT(*) AS total
+            FROM attendance a JOIN subjects sub ON sub.id = a.subject_id
+            WHERE 1 = 1""" + scope + " GROUP BY a.student_id",
+            params,
+        )
+    }
+    mk = {
+        r["student_id"]: r for r in q(
+            """
+            SELECT m.student_id, SUM(m.marks_obtained) AS obtained, SUM(m.max_marks) AS maxm
+            FROM marks m JOIN subjects sub ON sub.id = m.subject_id
+            WHERE 1 = 1""" + scope + " GROUP BY m.student_id",
+            params,
+        )
+    }
+
+    rows = []
+    for s in q(student_sql, params):
+        a, m = att.get(s["id"]), mk.get(s["id"])
+        att_pct = pct(a["present"], a["total"]) if a else None
+        marks_pct = pct(m["obtained"], m["maxm"]) if m else None
+        reasons = []
+        if att_pct is not None and att_pct < LOW_ATTENDANCE:
+            reasons.append("Low attendance")
+        if marks_pct is not None and marks_pct < LOW_MARKS:
+            reasons.append("Low marks")
+        if reasons:
+            rows.append({**s, "att_pct": att_pct, "marks_pct": marks_pct, "reasons": reasons})
+
+    rows.sort(key=lambda r: r["att_pct"] if r["att_pct"] is not None else 101)
+    return rows
+
+
+@app.route("/at-risk")
+@role_required("teacher", "admin")
+def at_risk():
+    teacher_id = session["user_id"] if session["role"] == "teacher" else None
+    return render_template(
+        "at_risk.html", rows=at_risk_rows(teacher_id),
+        low_att=LOW_ATTENDANCE, low_marks=LOW_MARKS,
+    )
+
+
+# -------------------------------------------------------------- analytics
+
+@app.route("/admin/analytics")
+@role_required("admin")
+def analytics():
+    def num(v):
+        return None if v is None else round(float(v), 1)
+
+    per_course = q(
+        """
+        SELECT c.name, COUNT(st.id) AS n
+        FROM courses c LEFT JOIN students st ON st.course_id = c.id
+        GROUP BY c.id, c.name ORDER BY c.name
+        """
+    )
+    marks_by_subject = q(
+        """
+        SELECT CONCAT(sub.name, ' (', c.name, ')') AS label,
+               100 * SUM(m.marks_obtained) / SUM(m.max_marks) AS value
+        FROM subjects sub
+        JOIN courses c ON c.id = sub.course_id
+        LEFT JOIN marks m ON m.subject_id = sub.id
+        GROUP BY sub.id, sub.name, c.name ORDER BY label
+        """
+    )
+    att_by_subject = q(
+        """
+        SELECT CONCAT(sub.name, ' (', c.name, ')') AS label,
+               100 * SUM(a.status='Present') / COUNT(a.id) AS value
+        FROM subjects sub
+        JOIN courses c ON c.id = sub.course_id
+        LEFT JOIN attendance a ON a.subject_id = sub.id
+        GROUP BY sub.id, sub.name, c.name ORDER BY label
+        """
+    )
+    data = {
+        "courses": {"labels": [r["name"] for r in per_course], "values": [r["n"] for r in per_course]},
+        "marks": {"labels": [r["label"] for r in marks_by_subject], "values": [num(r["value"]) for r in marks_by_subject]},
+        "attendance": {"labels": [r["label"] for r in att_by_subject], "values": [num(r["value"]) for r in att_by_subject]},
+    }
+    return render_template("analytics.html", data=data, low=LOW_ATTENDANCE)
 
 
 # ------------------------------------------------------------------ about

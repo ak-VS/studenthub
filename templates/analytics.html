@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Analytics | StudentHub{% endblock %}
+{% block content %}
+<section class="students">
+    <h2>Analytics</h2>
+    <p class="muted">Live figures from the database.</p>
+</section>
+
+<section class="charts">
+    <div class="students">
+        <h2>Students per course</h2>
+        <canvas id="courseChart"></canvas>
+    </div>
+    <div class="students">
+        <h2>Average marks by subject (%)</h2>
+        <canvas id="marksChart"></canvas>
+    </div>
+    <div class="students">
+        <h2>Attendance by subject (%)</h2>
+        <canvas id="attChart"></canvas>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const data = {{ data|tojson }};
+    const low = {{ low }};
+    const noLegend = { legend: { display: false } };
+
+    new Chart(document.getElementById("courseChart"), {
+        type: "bar",
+        data: { labels: data.courses.labels, datasets: [{ data: data.courses.values, backgroundColor: "#4f46e5" }] },
+        options: { plugins: noLegend, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+
+    new Chart(document.getElementById("marksChart"), {
+        type: "bar",
+        data: { labels: data.marks.labels, datasets: [{ data: data.marks.values, backgroundColor: "#2563eb" }] },
+        options: { plugins: noLegend, scales: { y: { min: 0, max: 100 } } }
+    });
+
+    new Chart(document.getElementById("attChart"), {
+        type: "bar",
+        data: {
+            labels: data.attendance.labels,
+            datasets: [{
+                data: data.attendance.values,
+                backgroundColor: data.attendance.values.map(v => v !== null && v < low ? "#dc2626" : "#16a34a")
+            }]
+        },
+        options: { plugins: noLegend, scales: { y: { min: 0, max: 100 } } }
+    });
+</script>
+{% endblock %}
